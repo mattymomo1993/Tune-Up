@@ -5,11 +5,12 @@
 Use the timeit and cProfile libraries to find bad code.
 """
 
-__author__ = "???"
+__author__ = "Matthew, JT, and Piero helped"
 
 import cProfile
 import pstats
 import functools
+import timeit
 
 
 def profile(func):
@@ -18,7 +19,15 @@ def profile(func):
     """
     # Be sure to review the lesson material on decorators.
     # You need to understand how they are constructed and used.
-    raise NotImplementedError("Complete this decorator function")
+    def inner(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+        ps = pstats.Stats(profiler).sort_stats('cumulative')
+        ps.print_stats(10)
+        return result
+    return inner
 
 
 def read_movies(src):
@@ -35,10 +44,10 @@ def is_duplicate(title, movies):
             return True
     return False
 
-
+@profile
 def find_duplicate_movies(src):
     """Returns a list of duplicate movies from a src list."""
-    # Not optimized
+    # Not optimized and movies is undifined<~>?<~>
     movies = read_movies(src)
     duplicates = []
     while movies:
@@ -50,23 +59,32 @@ def find_duplicate_movies(src):
 #
 # Students: write a better version of find_duplicate_movies
 #
+@profile
 def optimized_find_duplicate_movies(src):
-    # Your code here
-    return
+    movies = read_movies(src)
+    dictionary = {}
+    for title in movies:
+        if title in dictionary:
+            dictionary[title] = dictionary[title] + 1
+        else:
+            dictionary[title] = 1
+    return find_duplicate_movies(dictionary)
+
+    
 
 
 def timeit_helper(func_name, func_param):
     """Part A: Obtain some profiling measurements using timeit"""
     assert isinstance(func_name, str)
-    # stmt = ???
-    # setup = ???
-    # t = ???
-    # runs_per_repeat = 3
-    # num_repeats = 5
-    # result = t.repeat(repeat=num_repeats, number=runs_per_repeat)
-    # time_cost = ???
-    # print(f"func={func_name}  num_repeats={num_repeats} runs_per_repeat={runs_per_repeat} time_cost={time_cost:.3f} sec")
-    # return t
+    stmt = f"{func_name}('{func_param}')"
+    setup = f"from {__name__} import {func_name}"
+    t = timeit.Timer(stmt=stmt, setup=setup)
+    runs_per_repeat = 3
+    num_repeats = 5
+    result = t.repeat(repeat=num_repeats, number=runs_per_repeat)
+    time_cost = min(result) / runs_per_repeat
+    print(f"func={func_name} num_repeats={num_repeats} runs_per_repeat={runs_per_repeat} time_cost={time_cost:.3f} sec")
+    return t
 
 
 def main():
@@ -93,6 +111,7 @@ def main():
     
     print("\n--- cProfile results, after optimization ---")
     profile(optimized_find_duplicate_movies)(filename)
+
 
 if __name__ == '__main__':
     main()
